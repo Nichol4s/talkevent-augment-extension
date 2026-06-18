@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "TalkEvent Augment (Orange to Blue + RTL)",
-    "version": "1.0",
-    "description": "Recolors orange tones to blue and flips the page layout direction to right-to-left.",
+    "name": "TalkEvent Augment (Orange to Blue + Mirror)",
+    "version": "1.1",
+    "description": "Recolors orange tones to blue and mirrors the whole page horizontally.",
     "content_scripts": [
         {
             "js": ["content.js"],

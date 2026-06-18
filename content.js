@@ -4,8 +4,8 @@
  * Two augmentations, applied to the proxied page and re-applied as the DOM mutates:
  *   1. Orange -> Blue: rewrite any orange-ish color found in inline styles,
  *      relevant CSS properties, and SVG fill/stroke attributes to a blue counterpart.
- *   2. RTL: set the document layout direction to right-to-left (text stays readable,
- *      layout mirrors).
+ *   2. Mirror: geometrically flip the whole page horizontally (scaleX(-1)),
+ *      producing a true mirror image of the page.
  *
  * CSS file injection is not supported in Webfuse extensions, so all styling is done
  * from JavaScript. Content scripts run after the document loads.
@@ -151,23 +151,36 @@
         for (var i = 0; i < all.length; i++) recolorElement(all[i]);
     }
 
-    // ---- RTL --------------------------------------------------------------
+    // ---- Mirror -----------------------------------------------------------
+    //
+    // Geometrically flip the whole page horizontally so it reads as a mirror
+    // image. We inject a persistent <style> targeting the root element rather
+    // than setting an inline style, so the site's own restyling can't clear it.
+    // Fixed/sticky elements are flipped within the same transformed context,
+    // so the mirror is consistent across the entire viewport.
 
-    function applyRtl() {
-        if (document.documentElement) {
-            document.documentElement.setAttribute("dir", "rtl");
-            document.documentElement.style.setProperty("direction", "rtl", "important");
-        }
-        if (document.body) {
-            document.body.setAttribute("dir", "rtl");
-            document.body.style.setProperty("direction", "rtl", "important");
-        }
+    var MIRROR_STYLE_ID = "__talkevent_mirror_style__";
+
+    function applyMirror() {
+        var doc = document;
+        if (!doc.documentElement) return;
+        if (doc.getElementById(MIRROR_STYLE_ID)) return; // already injected
+
+        var style = doc.createElement("style");
+        style.id = MIRROR_STYLE_ID;
+        style.textContent =
+            "html {" +
+            "  transform: scaleX(-1) !important;" +
+            "  transform-origin: center center !important;" +
+            "}";
+        var head = doc.head || doc.documentElement;
+        head.appendChild(style);
     }
 
     // ---- Apply + keep applying on mutation --------------------------------
 
     function applyAll() {
-        try { applyRtl(); } catch (e) {}
+        try { applyMirror(); } catch (e) {}
         try { recolorAll(document); } catch (e) {}
     }
 
@@ -184,7 +197,7 @@
         pending = true;
         (window.requestAnimationFrame || window.setTimeout)(function () {
             pending = false;
-            applyRtl();
+            applyMirror();
             for (var i = 0; i < mutations.length; i++) {
                 var mu = mutations[i];
                 if (mu.type === "childList") {
